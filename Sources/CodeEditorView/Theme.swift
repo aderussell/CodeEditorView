@@ -137,6 +137,18 @@ public struct Theme: Identifiable {
   public var invisiblesColour: OSColor {
     didSet { id = UUID() }
   }
+   
+  /// The spacing between new lines.
+  ///
+  public var paragraphSpacing: CGFloat {
+    didSet { id = UUID() }
+  }
+  
+  /// The spacing between content of a wrapped line.
+  ///
+  public var lineSpacing: CGFloat {
+    didSet { id = UUID() }
+  }
 
   public init(colourScheme: ColorScheme,
               fontName: String,
@@ -157,7 +169,9 @@ public struct Theme: Identifiable {
               currentLineColour: OSColor,
               selectionColour: OSColor,
               cursorColour: OSColor,
-              invisiblesColour: OSColor)
+              invisiblesColour: OSColor,
+              paragraphSpacing: CGFloat = 0.0,
+              lineSpacing: CGFloat = 0.0)
   {
     self.colourScheme = colourScheme
     self.fontName = fontName
@@ -179,6 +193,8 @@ public struct Theme: Identifiable {
     self.selectionColour = selectionColour
     self.cursorColour = cursorColour
     self.invisiblesColour = invisiblesColour
+    self.paragraphSpacing = paragraphSpacing
+    self.lineSpacing = lineSpacing
   }
 }
 

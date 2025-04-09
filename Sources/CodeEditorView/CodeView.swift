@@ -186,11 +186,15 @@ final class CodeView: UITextView {
     //      self.codeViewportLayoutControllerDelegate               = codeViewportLayoutControllerDelegate
     //      codeLayoutManager.textViewportLayoutController.delegate = codeViewportLayoutControllerDelegate
     //    }
+      
+    let ps = NSMutableParagraphStyle()
+    ps.paragraphSpacing = theme.lineSpacing + theme.paragraphSpacing
 
     // Set basic display and input properties
     font                   = theme.font
     backgroundColor        = theme.backgroundColour
     tintColor              = theme.tintColour
+    typingAttributes       = [.paragraphStyle: ps, .font: theme.font]
     autocapitalizationType = .none
     autocorrectionType     = .no
     spellCheckingType      = .no

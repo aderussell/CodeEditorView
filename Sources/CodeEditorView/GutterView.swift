@@ -211,6 +211,8 @@ extension GutterView {
 
       // Text attributes for the line numbers
       let lineNumberStyle = NSMutableParagraphStyle()
+      lineNumberStyle.paragraphSpacing = theme.paragraphSpacing
+      lineNumberStyle.lineSpacing = theme.lineSpacing
       lineNumberStyle.alignment = .right
       lineNumberStyle.tailIndent = -theme.fontSize / 11
       let textAttributesDefault  = [NSAttributedString.Key.font: font,
