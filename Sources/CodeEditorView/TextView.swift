@@ -184,7 +184,8 @@ extension TextView {
 
     // We start at x = 0 as it looks nicer in case we overscoll when horizontal scrolling is enabled (i.e., when lines
     // are not wrapped).
-    return CGRect(x: 0, y: y, width: bounds.size.width, height: height)
+    let offset = optCodeStorage?.theme.paragraphSpacing ?? 0.0
+    return CGRect(x: 0, y: y + textContainerOrigin.y, width: bounds.size.width, height: height - offset)
   }
 }
 

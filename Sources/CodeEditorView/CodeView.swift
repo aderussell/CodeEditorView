@@ -203,7 +203,8 @@ final class CodeView: UITextView {
     smartInsertDeleteType  = .no
 
     // Line wrapping
-    textContainerInset                  = .zero
+    textContainerInset                 = .zero
+    textContainerInset.top             = 16
     textContainer.widthTracksTextView  = false   // we need to be able to control the size (see `tile()`)
     textContainer.heightTracksTextView = false
     textContainer.lineBreakMode        = .byWordWrapping
@@ -263,6 +264,7 @@ final class CodeView: UITextView {
     minimapView.isEditable                         = false
     minimapView.isSelectable                       = false
     minimapView.textContainerInset                 = .zero
+    minimapView.textContainerInset.top             = 16
     minimapView.textContainer.widthTracksTextView  = false    // we need to be able to control the size (see `tile()`)
     minimapView.textContainer.heightTracksTextView = true
     minimapView.textContainer.lineBreakMode        = .byWordWrapping
@@ -1094,7 +1096,7 @@ extension CodeView {
     }
 #elseif os(iOS) || os(visionOS)
     if textContainerInset.left != gutterWidth {
-      textContainerInset = UIEdgeInsets(top: 0, left: gutterWidth, bottom: 0, right: 0)
+      textContainerInset = UIEdgeInsets(top: 16, left: gutterWidth, bottom: 0, right: 0)
     }
 #endif
 
