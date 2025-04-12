@@ -328,7 +328,7 @@ extension CodeView {
 
         let replacementRange = NSRange(location: theLine.range.location, length: 0)
         codeStorage.replaceCharacters(in: replacementRange, with: indentation.defaultIndentation)
-        return range.adjustSelection(forReplacing: replacementRange, by: 2)
+        return range.adjustSelection(forReplacing: replacementRange, by: indentation.indentWidth)
 
       }
     }
