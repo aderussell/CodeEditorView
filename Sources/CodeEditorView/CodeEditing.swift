@@ -271,7 +271,7 @@ extension CodeView {
   
   /// Shift all lines that are part of the current selection one indentation level to the left or right.
   ///
-  func shiftLeftOrRight(doShiftLeft: Bool) {
+  func shiftLeftOrRight(doShiftLeft: Bool, isUndo: Bool = false) {
     guard let textContentStorage  = optTextContentStorage,
           let codeStorage         = optCodeStorage,
           let codeStorageDelegate = codeStorage.delegate as? CodeStorageDelegate
@@ -341,6 +341,15 @@ extension CodeView {
         for line in lines {
           newRange = shift(line: line, adjusting: newRange)
         }
+          
+        undoManager?.registerUndo(withTarget: self) { target in
+        let resetRange = range
+            target.shiftLeftOrRight(doShiftLeft: !doShiftLeft, isUndo: !isUndo)
+        }
+        if !isUndo {
+          undoManager?.setActionName(.init(localized: doShiftLeft ? "Shift Left" : "Shift Right"))
+        }
+          
         return newRange
       }
     }
