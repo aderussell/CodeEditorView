@@ -290,8 +290,25 @@ final class CodeView: UITextView {
         self?.gutterView?.invalidateGutter()
         self?.minimapGutterView?.invalidateGutter()
       }
+      
+      self.isFindInteractionEnabled = true
+      
+      // TODO: add duplicate action - #selector(CodeEditorActions.duplicate(_:))
+      let ii = [
+        UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftLeft(_:))),
+        UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftRight(_:))),
+        UIBarButtonItem(image: UIImage(systemName: "chevron.left.forwardslash.chevron.right"), style: .plain, target: self, action: #selector(CodeEditorActions.commentSelection(_:))),
+        UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(Self.beginSearch(_:)))
+      ]
+      let bbig = UIBarButtonItemGroup(barButtonItems: ii,
+                                      representativeItem: UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: nil, action: nil))
+      self.inputAssistantItem.trailingBarButtonGroups = [bbig]
   }
 
+    @objc func beginSearch(_ sender: Any?) {
+        findInteraction?.presentFindNavigator(showingReplace: false)
+    }
+    
   @available(*, unavailable)
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
@@ -1021,7 +1038,7 @@ extension CodeView {
     //
     let theFont                 = font ?? OSFont.systemFont(ofSize: 0),
         fontWidth               = theFont.maximumHorizontalAdvancement,  // NB: we deal only with fixed width fonts
-        gutterWidthInCharacters = CGFloat(7),
+        gutterWidthInCharacters = CGFloat(4),
         gutterWidth             = ceil(fontWidth * gutterWidthInCharacters),
         minimumHeight           = max(contentSize.height, documentVisibleRect.height),
         gutterSize              = CGSize(width: gutterWidth, height: minimumHeight),
