@@ -139,6 +139,10 @@ final class CodeView: UITextView {
   /// Keeps track of the set of message views.
   ///
   var messageViews: MessageViews = [:]
+  
+  /// Whether multiple messages  can be kept open at once, or if opening one will cause others to close.
+  ///
+  var allowMultipleOpenMessages: Bool = false
 
   /// Designated initializer for code views with a gutter.
   ///
@@ -494,6 +498,10 @@ final class CodeView: NSTextView {
   /// Keeps track of the set of message views.
   ///
   var messageViews: MessageViews = [:]
+  
+  /// Whether multiple messages  can be kept open at once, or if opening one will cause others to close.
+  ///
+  var allowMultipleOpenMessages: Bool = false
 
   /// For the consumption of the diagnostics stream.
   ///
@@ -1282,6 +1290,13 @@ extension CodeView {
 
     updateMessageView(for: messageBundle, at: line)
   }
+  
+  func closeOtherMessages(_ message: StatefulMessageView.HostingView) {
+    if allowMultipleOpenMessages { return }
+    for messageView in messageViews where messageView.value.view !== message {
+      messageView.value.view.unfolded = false
+    }
+  }
 
   /// Given a new or updated message bundle, update the corresponding message view appropriately. This includes covering
   /// the two special cases, where we create a new view or we remove a view for good (as its last message got deleted).
@@ -1315,7 +1330,8 @@ extension CodeView {
                                                                                      popupWidth: 300,
                                                                                      popupOffset: 16),
                                                       fontSize: font?.pointSize ?? OSFont.systemFontSize,
-                                                      colourScheme: theme.colourScheme),
+                                                      colourScheme: theme.colourScheme,
+                                                      unfoldedToggleCallback: closeOtherMessages),
         principalCategory = messagesByCategory(messageBundle.messages)[0].key,
         colour            = messageTheme(principalCategory).colour,
         backgroundView    = CodeBackgroundHighlightView(color: colour.withAlphaComponent(0.1)),

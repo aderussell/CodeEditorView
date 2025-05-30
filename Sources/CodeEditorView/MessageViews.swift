@@ -7,7 +7,7 @@
 //  Defines the visuals that present messages, both inline and as popovers.
 
 import SwiftUI
-
+import Combine
 import LanguageSupport
 
 
@@ -321,7 +321,10 @@ struct MessageView: View {
         .frame(minWidth: MessageView.minimumInlineWidth, maxWidth: geometry.lineWidth, maxHeight: geometry.lineHeight)
         .transition(.opacity)
         .onTapGesture { unfolded.toggle() }
-        .opacity(unfolded ? 0.0 : 1.0)
+        .animation(.easeInOut(duration: 0.3)) { content in
+          content
+            .opacity(unfolded ? 0.0 : 1.0)
+        }
 
     }
   }
@@ -353,7 +356,7 @@ struct StatefulMessageView: View {
   let colourScheme: ColorScheme            // The colour scheme to use for SwiftUI elements
   let invalidated:  Bool                   // Whether the messages are to be rendered invalidated
 
-  @ObservedObject var unfolded: ObservableBool  // `true` iff the view shows the popup flavour
+  @ObservedObject var unfolded: ObservableBool  // `true` if the view shows the popup flavour
 
   /// The unfolding state needs to be communicated between the SwiftUI view and the external world. Hence, we need to
   /// go via an `ObservableObject`.
@@ -389,6 +392,8 @@ extension StatefulMessageView {
     private var background:   Color
     private let fontSize:     CGFloat
     private let colourScheme: ColorScheme
+      
+    var unfoldedToggleCallback: ((StatefulMessageView.HostingView) -> Void)?
 
     /// Unfolding status as sharable state.
     ///
@@ -406,13 +411,16 @@ extension StatefulMessageView {
     var invalidated: Bool {
       didSet { reconfigure() }
     }
+    
+    private var cancellables: [AnyCancellable] = []
 
     init(messages: [Message],
          theme: @escaping Message.Theme,
          background: Color,
          geometry: MessageView.Geometry,
          fontSize: CGFloat,
-         colourScheme: ColorScheme)
+         colourScheme: ColorScheme,
+         unfoldedToggleCallback: ((StatefulMessageView.HostingView) -> Void)? = nil)
     {
       self.messages     = messages
       self.theme        = theme
@@ -421,6 +429,7 @@ extension StatefulMessageView {
       self.fontSize     = fontSize
       self.colourScheme = colourScheme
       self.invalidated  = false
+      self.unfoldedToggleCallback = unfoldedToggleCallback
       super.init(frame: .zero)
 
 #if os(iOS) || os(visionOS)
@@ -436,6 +445,14 @@ extension StatefulMessageView {
                                                                 colourScheme: colourScheme,
                                                                 invalidated: invalidated,
                                                                 unfolded: unfoldedState))
+      unfoldedState.$bool.sink { [weak self] isUnfolded in
+        guard let self else { return }
+        if isUnfolded {
+          unfoldedToggleCallback?(self)
+          superview?.bringSubviewToFront(self)
+        }
+      }.store(in: &cancellables)
+      
 #if os(iOS) || os(visionOS)
       hostingView?.isOpaque = false
 #endif

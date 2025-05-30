@@ -117,6 +117,13 @@ extension NSView {
   func insertSubview(_ view: NSView, belowSubview siblingSubview: NSView) {
     addSubview(view, positioned: .below, relativeTo: siblingSubview)
   }
+    
+  @MainActor
+  func bringSubviewToFront(_ view: NSView) {
+    guard view.superview == self else { return }
+    view.removeFromSuperview()
+    self.addSubview(view, positioned: .above, relativeTo: nil)
+  }
 }
 
 #endif
