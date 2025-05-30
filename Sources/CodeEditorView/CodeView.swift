@@ -1316,12 +1316,12 @@ extension CodeView {
     case .insert(newContent: let newContent, index: let index):
       let insertPoint = line.range.location + index
       range = NSRange(location: insertPoint, length: newContent.count)
-      textStorage?.replaceCharacters(in: NSRange(location: insertPoint, length: 0), with: newContent)
+      optCodeStorage?.replaceCharacters(in: NSRange(location: insertPoint, length: 0), with: newContent)
       break
     case .replace(newContent: let newContent, originalContent: let originalContent, originalRange: let originalRange):
       let insertPoint = NSRange(location: line.range.location + originalRange.lowerBound, length: originalRange.count)
       range = insertPoint
-      textStorage?.replaceCharacters(in: insertPoint, with: newContent)
+      optCodeStorage?.replaceCharacters(in: insertPoint, with: newContent)
       break
     }
     
