@@ -65,18 +65,37 @@ public struct Message {
   /// within the scope of the message).
   ///
   public let telescope: Int?
+  
+  
+  public struct Fix {
+    public enum Action {
+      case insert(newContent: String, index: Int)
+      case replace(newContent: String, originalContent: String, originalRange: ClosedRange<Int>)
+    }
+    public let action: Action
+    public let message: String
+    
+    public init(action: Action, message: String) {
+      self.action = action
+      self.message = message
+    }
+  }
+  
+  public let fixes: [Fix]
 
   public init(category: Message.Category, 
               length: Int,
               summary: String,
               description: AttributedString?,
-              telescope: Int? = nil)
+              telescope: Int? = nil,
+              fixes: [Fix] = [])
   {
     self.category    = category
     self.length      = length
     self.summary     = summary
     self.description = description
     self.telescope   = telescope
+    self.fixes       = fixes
   }
 }
 

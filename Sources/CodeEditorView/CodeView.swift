@@ -1297,6 +1297,40 @@ extension CodeView {
       messageView.value.view.unfolded = false
     }
   }
+  
+  func performMessageFix(messageHostingView: StatefulMessageView.HostingView, message: Message, fix: Message.Fix) {
+    guard let messageView = messageViews.first(where: { $0.value.view === messageHostingView }) else { return }
+    let id = messageView.key
+    
+    guard let textLayoutManager  = textLayoutManager,
+          let textContentManager = textLayoutManager.textContentManager as? NSTextContentStorage,
+          let codeContainer      = optTextContainer as? CodeContainer,
+          let messageBundle      = messageViews[id]
+    else { return }
+    
+    guard let lineNumber = codeStorageDelegate.lineMap.lineOf(index: messageBundle.characterIndex),
+          let line = codeStorageDelegate.lineMap.lookup(line: lineNumber) else { return }
+    
+    var range: NSRange = .zero
+    switch fix.action {
+    case .insert(newContent: let newContent, index: let index):
+      let insertPoint = line.range.location + index
+      range = NSRange(location: insertPoint, length: newContent.count)
+      textStorage?.replaceCharacters(in: NSRange(location: insertPoint, length: 0), with: newContent)
+      break
+    case .replace(newContent: let newContent, originalContent: let originalContent, originalRange: let originalRange):
+      let insertPoint = NSRange(location: line.range.location + originalRange.lowerBound, length: originalRange.count)
+      range = insertPoint
+      textStorage?.replaceCharacters(in: insertPoint, with: newContent)
+      break
+    }
+    
+    // clear the fixed message
+    guard let currentBundle = line.info?.messages else { return }
+    var newBundle = currentBundle
+    newBundle.remove(message: message)
+    updateMessageView(for: newBundle, at: lineNumber)
+  }
 
   /// Given a new or updated message bundle, update the corresponding message view appropriately. This includes covering
   /// the two special cases, where we create a new view or we remove a view for good (as its last message got deleted).
@@ -1331,7 +1365,8 @@ extension CodeView {
                                                                                      popupOffset: 16),
                                                       fontSize: font?.pointSize ?? OSFont.systemFontSize,
                                                       colourScheme: theme.colourScheme,
-                                                      unfoldedToggleCallback: closeOtherMessages),
+                                                      unfoldedToggleCallback: closeOtherMessages,
+                                                      performMessageFixCallback: performMessageFix),
         principalCategory = messagesByCategory(messageBundle.messages)[0].key,
         colour            = messageTheme(principalCategory).colour,
         backgroundView    = CodeBackgroundHighlightView(color: colour.withAlphaComponent(0.1)),

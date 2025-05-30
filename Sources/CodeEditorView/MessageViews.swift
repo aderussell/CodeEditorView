@@ -181,6 +181,7 @@ fileprivate struct MessagePopupCategoryView: View {
   let messages:    [Message]
   let theme:       Message.Theme
   let invalidated: Bool
+  let fixCallback: (Message, Message.Fix) -> Void
 
   let cornerRadius: CGFloat = 10
 
@@ -208,8 +209,26 @@ fileprivate struct MessagePopupCategoryView: View {
         // Vertical stack of message
         VStack(alignment: .leading, spacing: 6) {
           ForEach(0..<messages.count, id: \.self) { i in
-            Text(messages[i].summary)
-            if let description = messages[i].description { Text(description) }
+            VStack(alignment: .leading) {
+              let message = messages[i]
+              Text(message.summary)
+              if let description = message.description { Text(description) }
+              ForEach(0..<message.fixes.count, id: \.self) { fixI in
+                let fix = message.fixes[fixI]
+                HStack {
+                  Spacer()
+                    .frame(width: 8)
+                  Image(systemName: "bandage")
+                  Text(fix.message)
+                  Spacer()
+                  Button("Fix") {
+                    fixCallback(message, fix)
+                    // do something
+                  }
+                  .buttonStyle(FixButtonStyle())
+                }
+              }
+            }
           }
         }
         .padding([.leading, .trailing], 5)
@@ -240,6 +259,7 @@ struct MessagePopupView: View {
   let messages:    [Message]
   let theme:       Message.Theme
   let invalidated: Bool
+  let fixCallback: (Message, Message.Fix) -> Void
 
   /// The width of the text in the message category with the widest text.
   ///
@@ -254,7 +274,8 @@ struct MessagePopupView: View {
         MessagePopupCategoryView(category: categories[i].0,
                                  messages: categories[i].1,
                                  theme: theme,
-                                 invalidated: invalidated)
+                                 invalidated: invalidated,
+                                 fixCallback: fixCallback)
       }
     }
     .background(Color.clear)
@@ -295,6 +316,7 @@ struct MessageView: View {
   let background:  Color
   let geometry:    Geometry
   let invalidated: Bool
+  let fixCallback: (Message, Message.Fix) -> Void
 
   @Binding var unfolded: Bool       // False => inline view; true => popup view
 
@@ -309,7 +331,7 @@ struct MessageView: View {
       VStack {
         Spacer(minLength: geometry.popupOffset)
         HStack {
-          MessagePopupView(messages: messages, theme: theme, invalidated: invalidated)
+          MessagePopupView(messages: messages, theme: theme, invalidated: invalidated, fixCallback: fixCallback)
             .frame(maxWidth: geometry.popupWidth)
             .onTapGesture { unfolded.toggle() }
           Spacer(minLength: MessageView.popupRightSideOffset)
@@ -355,6 +377,7 @@ struct StatefulMessageView: View {
   let fontSize:     CGFloat                // Font size to use for messages
   let colourScheme: ColorScheme            // The colour scheme to use for SwiftUI elements
   let invalidated:  Bool                   // Whether the messages are to be rendered invalidated
+  let performMessageFixCallback: (Message, Message.Fix) -> Void
 
   @ObservedObject var unfolded: ObservableBool  // `true` if the view shows the popup flavour
 
@@ -375,6 +398,7 @@ struct StatefulMessageView: View {
                 background: background,
                 geometry: geometry,
                 invalidated: invalidated,
+                fixCallback: performMessageFixCallback,
                 unfolded: $unfolded.bool)
       .font(.system(size: fontSize))
       .environment(\.colorScheme, colourScheme)
@@ -394,6 +418,12 @@ extension StatefulMessageView {
     private let colourScheme: ColorScheme
       
     var unfoldedToggleCallback: ((StatefulMessageView.HostingView) -> Void)?
+    
+    var performMessageFixCallback: ((StatefulMessageView.HostingView, Message, Message.Fix) -> Void)?
+    
+    private func fixCallback(_ message: Message, _ fix: Message.Fix) {
+      performMessageFixCallback?(self, message, fix)
+    }
 
     /// Unfolding status as sharable state.
     ///
@@ -420,7 +450,8 @@ extension StatefulMessageView {
          geometry: MessageView.Geometry,
          fontSize: CGFloat,
          colourScheme: ColorScheme,
-         unfoldedToggleCallback: ((StatefulMessageView.HostingView) -> Void)? = nil)
+         unfoldedToggleCallback: ((StatefulMessageView.HostingView) -> Void)? = nil,
+         performMessageFixCallback: ((StatefulMessageView.HostingView, Message, Message.Fix) -> Void)? = nil)
     {
       self.messages     = messages
       self.theme        = theme
@@ -430,6 +461,7 @@ extension StatefulMessageView {
       self.colourScheme = colourScheme
       self.invalidated  = false
       self.unfoldedToggleCallback = unfoldedToggleCallback
+      self.performMessageFixCallback = performMessageFixCallback
       super.init(frame: .zero)
 
 #if os(iOS) || os(visionOS)
@@ -444,6 +476,7 @@ extension StatefulMessageView {
                                                                 fontSize: fontSize,
                                                                 colourScheme: colourScheme,
                                                                 invalidated: invalidated,
+                                                                performMessageFixCallback: fixCallback,
                                                                 unfolded: unfoldedState))
       unfoldedState.$bool.sink { [weak self] isUnfolded in
         guard let self else { return }
@@ -483,6 +516,7 @@ extension StatefulMessageView {
                                                        fontSize: fontSize,
                                                        colourScheme: colourScheme,
                                                        invalidated: invalidated,
+                                                       performMessageFixCallback: fixCallback,
                                                        unfolded: unfoldedState)
     }
   }
@@ -514,6 +548,7 @@ struct MessageViewPreview: View {
                 background: background,
                 geometry: geometry, 
                 invalidated: false,
+                fixCallback: {_,_ in},
                 unfolded: $unfolded)
   }
 }
@@ -558,28 +593,30 @@ struct MessageViews_Previews: PreviewProvider {
 
     // Popup view
 
-    MessagePopupView(messages: [message1], theme: Message.defaultTheme, invalidated: false)
+    MessagePopupView(messages: [message1], theme: Message.defaultTheme, invalidated: false, fixCallback: {_,_ in})
       .font(.system(size: 32))
       .frame(maxWidth: 320, minHeight: 15)
       .preferredColorScheme(.dark)
 
-    MessagePopupView(messages: [message1, message4], theme: Message.defaultTheme, invalidated: false)
+    MessagePopupView(messages: [message1, message4], theme: Message.defaultTheme, invalidated: false, fixCallback: {_,_ in})
       .frame(maxWidth: 320, minHeight: 15)
       .preferredColorScheme(.dark)
 
-    MessagePopupView(messages: [message1, message2, message3], theme: Message.defaultTheme, invalidated: false)
-      .frame(maxWidth: 320, minHeight: 15)
-      .preferredColorScheme(.dark)
-
-    MessagePopupView(messages: [message1, message5, message2, message4, message3],
-                     theme: Message.defaultTheme,
-                     invalidated: false)
+    MessagePopupView(messages: [message1, message2, message3], theme: Message.defaultTheme, invalidated: false, fixCallback: {_,_ in})
       .frame(maxWidth: 320, minHeight: 15)
       .preferredColorScheme(.dark)
 
     MessagePopupView(messages: [message1, message5, message2, message4, message3],
                      theme: Message.defaultTheme,
-                     invalidated: false)
+                     invalidated: false,
+                     fixCallback: {_,_ in})
+      .frame(maxWidth: 320, minHeight: 15)
+      .preferredColorScheme(.dark)
+
+    MessagePopupView(messages: [message1, message5, message2, message4, message3],
+                     theme: Message.defaultTheme,
+                     invalidated: false,
+                     fixCallback: {_,_ in})
       .frame(maxWidth: 320, minHeight: 15)
       .preferredColorScheme(.light)
 
@@ -601,11 +638,23 @@ struct MessageViews_Previews: PreviewProvider {
                           fontSize: 15,
                           colourScheme: .dark,
                           invalidated: false,
+                          performMessageFixCallback: {_,_ in},
                           unfolded: StatefulMessageView.ObservableBool(bool: false))
         .offset(y: 18)
     }
     .frame(width: 400, height: 300, alignment: .topTrailing)
 //    .preferredColorScheme(.light)
 
+  }
+}
+
+
+struct FixButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .padding(3)
+      .background(.ultraThickMaterial)
+      .brightness(configuration.isPressed ? 0.3 : 0.0)
+      .cornerRadius(4)
   }
 }
