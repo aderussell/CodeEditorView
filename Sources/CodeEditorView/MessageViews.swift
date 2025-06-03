@@ -652,9 +652,11 @@ struct MessageViews_Previews: PreviewProvider {
 struct FixButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .padding(3)
-      .background(.ultraThickMaterial)
+      .foregroundStyle(.white)
+      .padding(.vertical, 2)
+      .padding(.horizontal, 8)
+      .background(Color(white: 0.22))
       .brightness(configuration.isPressed ? 0.3 : 0.0)
-      .cornerRadius(4)
+      .cornerRadius(6)
   }
 }
