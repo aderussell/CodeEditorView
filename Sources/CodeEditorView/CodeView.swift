@@ -209,6 +209,7 @@ final class CodeView: UITextView {
     // Line wrapping
     textContainerInset                 = .zero
     textContainerInset.top             = 16
+    textContainerInset.bottom          = 42
     textContainer.widthTracksTextView  = false   // we need to be able to control the size (see `tile()`)
     textContainer.heightTracksTextView = false
     textContainer.lineBreakMode        = .byWordWrapping
@@ -1121,7 +1122,7 @@ extension CodeView {
     }
 #elseif os(iOS) || os(visionOS)
     if textContainerInset.left != gutterWidth {
-      textContainerInset = UIEdgeInsets(top: 16, left: gutterWidth, bottom: 0, right: 0)
+      textContainerInset = UIEdgeInsets(top: 16, left: gutterWidth, bottom: 42, right: 0)
     }
 #endif
 
