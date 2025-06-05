@@ -205,6 +205,7 @@ final class CodeView: UITextView {
     smartQuotesType        = .no
     smartDashesType        = .no
     smartInsertDeleteType  = .no
+    keyboardDismissMode    = .interactive
 
     // Line wrapping
     textContainerInset                 = .zero
