@@ -175,6 +175,8 @@ final class CodeView: UITextView {
 
     super.init(frame: frame, textContainer: codeContainer)
     codeContainer.textView = self
+      
+      NotificationCenter.default.addObserver(self, selector: #selector(resignFirstResponder), name: CodeEditor.shouldResignFirstResponderNotification, object: nil)
 
     textLayoutManager.renderingAttributesValidator = { (textLayoutManager, layoutFragment) in
       guard let textContentStorage = textLayoutManager.textContentManager as? NSTextContentStorage else { return }

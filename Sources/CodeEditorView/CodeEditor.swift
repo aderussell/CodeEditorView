@@ -23,6 +23,8 @@ import LanguageSupport
 /// * Text-related values: affect the rendering of message views
 ///
 public struct CodeEditor {
+    
+    public static let shouldResignFirstResponderNotification: NSNotification.Name = NSNotification.Name(rawValue: "CodeView.shouldResignFirstResponderNotification")
 
   /// Specification of a text editing position; i.e., text selection and scroll position.
   ///
