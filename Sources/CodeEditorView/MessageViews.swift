@@ -128,13 +128,27 @@ private struct PopupWidth: PreferenceKey, EnvironmentKey {
   }
 }
 
+private struct PopupHeight: PreferenceKey, EnvironmentKey {
+
+  static let defaultValue: CGFloat? = nil
+  static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
+    if let nv = nextValue() { value = value.flatMap{ max(nv, $0) } ?? nv }
+  }
+}
+
 /// Accessor for the environment value identified by the key.
 ///
 extension EnvironmentValues {
-
   var popupWidth: CGFloat? {
     get { self[PopupWidth.self] }
     set { self[PopupWidth.self] = newValue }
+  }
+}
+
+extension EnvironmentValues {
+  var popupHeight: CGFloat? {
+    get { self[PopupHeight.self] }
+    set { self[PopupHeight.self] = newValue }
   }
 }
 
@@ -187,6 +201,7 @@ fileprivate struct MessagePopupCategoryView: View {
 
   @Environment(\.colorScheme) private var colourScheme: ColorScheme
   @Environment(\.popupWidth)  private var popupWidth:   CGFloat?
+  @Environment(\.popupHeight) private var popupHeight:  CGFloat?
 
   var body: some View {
 
@@ -204,7 +219,8 @@ fileprivate struct MessagePopupCategoryView: View {
             .overlay( theme(category).icon.frame(alignment: .center) )
             .padding([.leading, .trailing], 5)
             .padding([.top, .bottom], 3)
-        }.fixedSize(horizontal: true, vertical: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
 
         // Vertical stack of message
         VStack(alignment: .leading, spacing: 6) {
@@ -233,10 +249,11 @@ fileprivate struct MessagePopupCategoryView: View {
         }
         .padding([.leading, .trailing], 5)
         .padding([.top, .bottom], 3)
-        .frame(maxWidth: popupWidth, alignment: .leading)       // Constrain width if `popupWidth` is not `nil`
+        .frame(maxWidth: popupWidth, idealHeight: popupHeight, alignment: .leading)       // Constrain width if `popupWidth` is not `nil`
         .background(colour.opacity(0.3))
         .background(GeometryReader { proxy in                   // Propagate current width up the view tree
           Color.clear.preference(key: PopupWidth.self, value: proxy.size.width)
+          Color.clear.preference(key: PopupHeight.self, value: proxy.size.height)
         })
 
       }
@@ -264,6 +281,7 @@ struct MessagePopupView: View {
   /// The width of the text in the message category with the widest text.
   ///
   @State private var popupWidth: CGFloat?  = nil
+  @State private var popupHeight: CGFloat?  = nil
 
   var body: some View {
 
@@ -280,7 +298,9 @@ struct MessagePopupView: View {
     }
     .background(Color.clear)
     .onPreferenceChange(PopupWidth.self) { self.popupWidth = $0 }   // Update the state variable with current width...
+    .onPreferenceChange(PopupHeight.self) { self.popupHeight = $0 }   // Update the state variable with current width...
     .environment(\.popupWidth, popupWidth)                          // ...and propagate that value down the view tree.
+    .environment(\.popupHeight, popupHeight)                          // ...and propagate that value down the view tree.
   }
 }
 
