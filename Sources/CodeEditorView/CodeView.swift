@@ -207,7 +207,9 @@ final class CodeView: UITextView {
     smartQuotesType        = .no
     smartDashesType        = .no
     smartInsertDeleteType  = .no
+#if !os(visionOS)
     keyboardDismissMode    = .interactive
+#endif
 
     // Line wrapping
     textContainerInset                 = .zero
@@ -302,6 +304,7 @@ final class CodeView: UITextView {
       self.isFindInteractionEnabled = true
       
       // TODO: add duplicate action - #selector(CodeEditorActions.duplicate(_:))
+      #if !os(visionOS)
       let ii = [
         UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftLeft(_:))),
         UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftRight(_:))),
@@ -311,6 +314,7 @@ final class CodeView: UITextView {
       let bbig = UIBarButtonItemGroup(barButtonItems: ii,
                                       representativeItem: UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: nil, action: nil))
       self.inputAssistantItem.trailingBarButtonGroups = [bbig]
+      #endif
   }
 
     @objc func beginSearch(_ sender: Any?) {
@@ -356,7 +360,13 @@ final class CodeViewDelegate: NSObject, UITextViewDelegate {
   // MARK: -
   // MARK: UITextViewDelegate protocol
 
-  func textViewDidChange(_ textView: UITextView) { textDidChange?(textView) }
+  func textViewDidChange(_ textView: UITextView) {
+      textDidChange?(textView)
+      // TODO: fix this so it only updates the message for the line which was edited
+      if let tv = textView as? CodeView {
+          tv.update(messages: tv.lastMessages)
+      }
+  }
 
   func textViewDidChangeSelection(_ textView: UITextView) {
     guard let codeView = textView as? CodeView else { return }
@@ -426,6 +436,9 @@ final class CodeView: NSTextView {
   // Notification observer
   private var frameChangedNotificationObserver: NSObjectProtocol?
   private var didChangeNotificationObserver:    NSObjectProtocol?
+    
+  fileprivate var updateSubject = PassthroughSubject<Void, Never>()
+  fileprivate var cancellables = Set<AnyCancellable>()
 
   /// Contains the line on which the insertion point was located, the last time the selection range got set (if the
   /// selection was an insertion point at all; i.e., it's length was 0).
@@ -725,6 +738,15 @@ final class CodeView: NSTextView {
         logger.trace("Failed to start language service for \(language.name): \(error.localizedDescription)")
       }
     }
+      
+      updateSubject
+          .throttle(for: .milliseconds(300), scheduler: RunLoop.main, latest: true)
+          .sink { [weak self] in
+              if let self {
+                  self.update(messages: self.lastMessages)
+              }
+          }
+          .store(in: &cancellables)
   }
   
   /// Try to activate the language service for the currently configured language.
@@ -839,6 +861,13 @@ final class CodeViewDelegate: NSObject, NSTextViewDelegate {
     guard let textView = notification.object as? NSTextView else { return }
 
     textDidChange?(textView)
+      
+      // TODO: fix this so it only updates the message for the line which was edited
+      if let tv = textView as? CodeView {
+          tv.updateSubject.send()
+          // updateFramesForMessageViews
+          
+      }
   }
 
   func textViewDidChangeSelection(_ notification: Notification) {
@@ -864,6 +893,7 @@ final class CodeBackgroundHighlightView: NSBox {
     self.color  = color
     boxType     = .custom
     borderWidth = 0
+    autoresizingMask = .width
   }
 
   @available(*, unavailable)
@@ -880,6 +910,7 @@ final class CodeBackgroundHighlightView: NSBox {
 // MARK: Shared code
 
 extension CodeView {
+    
 
   // MARK: Background highlights
   
@@ -1495,51 +1526,54 @@ final class CodeContainer: NSTextContainer {
   override func lineFragmentRect(forProposedRect proposedRect: CGRect,
                                  at characterIndex: Int,
                                  writingDirection baseWritingDirection: NSWritingDirection,
-                                 remaining remainingRect: UnsafeMutablePointer<CGRect>?)
-  -> CGRect
-  { 
-    let superRect      = super.lineFragmentRect(forProposedRect: proposedRect,
-                                                at: characterIndex,
-                                                writingDirection: baseWritingDirection,
-                                                remaining: remainingRect),
-        calculatedRect = CGRect(x: 0, y: superRect.minY, width: size.width, height: superRect.height)
+                                 remaining remainingRect: UnsafeMutablePointer<CGRect>?) -> CGRect {
+      let superRect = super.lineFragmentRect(forProposedRect: proposedRect,
+                                             at: characterIndex,
+                                             writingDirection: baseWritingDirection,
+                                             remaining: remainingRect)
+      let calculatedRect = CGRect(x: 0, y: superRect.minY, width: size.width, height: superRect.height)
 
-    guard let codeView    = textView as? CodeView,
-          let codeStorage = codeView.optCodeStorage,
-          let delegate    = codeStorage.delegate as? CodeStorageDelegate,
-          let line        = delegate.lineMap.lineOf(index: characterIndex),
-          let oneLine     = delegate.lineMap.lookup(line: line),
-          characterIndex == oneLine.range.location     // do the following only for the first line fragment of a line
-    else { return calculatedRect }
+      guard let codeView    = textView as? CodeView,
+            let codeStorage = codeView.optCodeStorage,
+            let delegate    = codeStorage.delegate as? CodeStorageDelegate,
+            let line        = delegate.lineMap.lineOf(index: characterIndex),
+            let oneLine     = delegate.lineMap.lookup(line: line),
+            characterIndex == oneLine.range.location     // do the following only for the first line fragment of a line
+      else { return calculatedRect }
 
-    // On lines that contain messages, we reduce the width of the available line fragement rect such that there is
-    // always space for a minimal truncated message (provided the text container is wide enough to accomodate that).
-    if let messageBundleId = delegate.messages(at: line)?.id,
-       calculatedRect.width > 2 * MessageView.minimumInlineWidth
-    {
-
-      codeView.messageViews[messageBundleId]?.characterIndex    = characterIndex
-      codeView.messageViews[messageBundleId]?.lineFragementRect = calculatedRect
-      codeView.messageViews[messageBundleId]?.geometry = nil                      // invalidate the geometry
-
-      // If the bundle has a telescope, determine the telescope character index.
-
-      if let lines   = codeView.messageViews[messageBundleId]?.telescope,
-         let oneLine = delegate.lineMap.lookup(line: line + lines)
-      {
-        codeView.messageViews[messageBundleId]?.characterIndexTelescope = oneLine.range.max
+      if let messageBundleId = delegate.messages(at: line)?.id {
+          // print the thing
+          let dd = calculatedRect.width > 2 * MessageView.minimumInlineWidth
+          print("was in line \(line) - \(dd)")
       }
+      
+      // On lines that contain messages, we reduce the width of the available line fragement rect such that there is
+      // always space for a minimal truncated message (provided the text container is wide enough to accomodate that).
+      if let messageBundleId = delegate.messages(at: line)?.id,
+            calculatedRect.width > 2 * MessageView.minimumInlineWidth {
+  
+            codeView.messageViews[messageBundleId]?.characterIndex    = characterIndex
+            codeView.messageViews[messageBundleId]?.lineFragementRect = calculatedRect
+            codeView.messageViews[messageBundleId]?.geometry = nil                      // invalidate the geometry
 
-      // To fully determine the layout of the message view, typesetting needs to complete for this line; hence, we defer
-      // configuring the view.
-      DispatchQueue.main.async { codeView.layoutMessageView(identifiedBy: messageBundleId) }
+            // If the bundle has a telescope, determine the telescope character index.
 
-      return CGRect(origin: calculatedRect.origin,
-                    size: CGSize(width: calculatedRect.width - MessageView.minimumInlineWidth,
-                                 height: calculatedRect.height))
+            if let lines   = codeView.messageViews[messageBundleId]?.telescope,
+               let oneLine = delegate.lineMap.lookup(line: line + lines)
+            {
+              codeView.messageViews[messageBundleId]?.characterIndexTelescope = oneLine.range.max
+            }
 
-    } else { return calculatedRect }
-  }
+            // To fully determine the layout of the message view, typesetting needs to complete for this line; hence, we defer
+            // configuring the view.
+            DispatchQueue.main.async { codeView.layoutMessageView(identifiedBy: messageBundleId) }
+          
+            return CGRect(origin: calculatedRect.origin,
+                          size: CGSize(width: calculatedRect.width - MessageView.minimumInlineWidth,
+                                       height: calculatedRect.height))
+  
+        } else { return calculatedRect }
+    }
 }
 
 

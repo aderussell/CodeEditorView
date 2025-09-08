@@ -107,6 +107,10 @@ struct MessagePopupView: View {
                                                                    theme: theme,
                                                                    invalidated: invalidated,
                                                                    fixCallback: fixCallback))
+            
+            #if os(macOS)
+            hostingView?.sizingOptions = .intrinsicContentSize
+            #endif
 
 //          hostingView = OSHostingView(rootView: StatefulMessageView(messages: messages,
 //                                                                    theme: theme,
@@ -178,67 +182,49 @@ fileprivate struct MessagePopupCategoryView: View {
 
     let backgroundColour = colourScheme == .dark ? Color.black : Color.white
     let colour           = if invalidated { Color(OSColor.gray) } else { Color(theme(category).colour) }
-
-    let theActualView =
-      HStack(spacing: 0) {
-
-        // Category icon
-        ZStack (alignment: .top) {
-          colour.opacity(0.5)
-          Text("XX")       // We want the icon to have the height of text
-            .hidden()
-            .overlay( theme(category).icon.frame(alignment: .center) )
-            .padding([.leading, .trailing], 5)
-            .padding([.top, .bottom], 3)
-        }
-        .fixedSize(horizontal: true, vertical: false)
-
-        // Vertical stack of message
-        VStack(alignment: .leading, spacing: 6) {
-          ForEach(0..<messages.count, id: \.self) { i in
-            VStack(alignment: .leading) {
-              let message = messages[i]
-              Text(message.summary)
-              if let description = message.description { Text(description) }
-              ForEach(0..<message.fixes.count, id: \.self) { fixI in
-                let fix = message.fixes[fixI]
-                HStack {
-                  Spacer()
-                    .frame(width: 8)
-                  Image(systemName: "bandage")
-                  Text(fix.message)
-                  Spacer()
-                  Button("Fix") {
-                    fixCallback(message, fix)
-                    // do something
-                  }
-                  .buttonStyle(FixButtonStyle())
-                }
+      
+          HStack(spacing: 0) {
+              
+              // Category icon
+              ZStack (alignment: .top) {
+                  colour.opacity(0.5)
+                  Text(theme(category).icon)       // We want the icon to have the height of text
+                      .padding([.leading, .trailing], 5)
+                      .padding([.top, .bottom], 3)
               }
-            }
+              .fixedSize(horizontal: true, vertical: false)
+              
+              // Vertical stack of message
+              VStack(alignment: .leading, spacing: 6) {
+                  ForEach(0..<messages.count, id: \.self) { i in
+                      VStack(alignment: .leading) {
+                          let message = messages[i]
+                          Text(message.summary)
+                          if let description = message.description { Text(description) }
+                          ForEach(0..<message.fixes.count, id: \.self) { fixI in
+                              let fix = message.fixes[fixI]
+                              HStack {
+                                  Spacer()
+                                      .frame(width: 8)
+                                  Image(systemName: "bandage")
+                                  Text(fix.message)
+                                  Spacer()
+                                  Button("Fix") {
+                                      fixCallback(message, fix)
+                                      // do something
+                                  }
+                                  .buttonStyle(FixButtonStyle())
+                              }
+                          }
+                      }
+                  }
+              }
+              .padding([.leading, .trailing], 5)
+              .padding([.top, .bottom], 3)
+              .background(colour.opacity(0.3))
           }
-        }
-        .padding([.leading, .trailing], 5)
-        .padding([.top, .bottom], 3)
-//        .frame(maxWidth: popupWidth, maxHeight: popupHeight, alignment: .leading)       // Constrain width if `popupWidth` is not `nil`
-        .background(colour.opacity(0.3))
-        .background(GeometryReader { proxy in                   // Propagate current width up the view tree
-          Color.clear.preference(key: PopupWidth.self, value: proxy.size.width)
-          Color.clear.preference(key: PopupHeight.self, value: proxy.size.height)
-        })
-
-      }
-
-    // The construction with the overlay is necessary to reliably get the theme colour underneath the
-    // category icon to extend to vertically fill the available space. Essentially, the first use of
-    // `theActualView` calculates the height, which depends on the vertical stack of messages, and inside
-    // the overlay, we then just use the previously calculated height.
-    theActualView
-    .hidden()
-    .overlay(theActualView)
-    .background(backgroundColour)
-    .cornerRadius(cornerRadius)
-    .fixedSize(horizontal: false, vertical: true)           // horizontal must wrap and vertical extend
-    .messageBorder(cornerRadius: cornerRadius)
+          .background(backgroundColour)
+          .cornerRadius(cornerRadius)
+          .messageBorder(cornerRadius: cornerRadius)
   }
 }

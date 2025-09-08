@@ -184,7 +184,7 @@ struct MessageView: View {
 extension MessageView {
 
   // FIXME: This should maybe depend on the font size and may need to be configurable.
-  static let minimumInlineWidth = CGFloat(60)
+  static let minimumInlineWidth = CGFloat(100)
 
   /// The distance of the popup view from the right side of the text container.
   ///
@@ -497,6 +497,8 @@ class MessageOuterView: OSView {
     var popup: MessagePopupView.HostingView!
     var inline: MessageInlineView.HostingView!
     
+    var unfoldedToggleCallback: ((MessageOuterView) -> Void)?
+    
     var geometry: MessageView.Geometry {
       didSet { reconfigure() }
     }
@@ -510,8 +512,8 @@ class MessageOuterView: OSView {
          unfoldedToggleCallback: ((MessageOuterView) -> Void)? = nil,
          performMessageFixCallback: ((MessageOuterView, Message, Message.Fix) -> Void)? = nil)
     {
-        print(geometry)
         self.geometry = geometry
+        self.unfoldedToggleCallback = unfoldedToggleCallback
         super.init(frame: .zero)
         self.translatesAutoresizingMaskIntoConstraints = false
         
@@ -566,7 +568,7 @@ class MessageOuterView: OSView {
         
         let constraints = [
             popup.topAnchor.constraint(equalTo: topAnchor, constant: geometry.popupOffset),
-            popup.widthAnchor.constraint(equalToConstant: geometry.popupWidth),
+//            popup.widthAnchor.constraint(equalToConstant: geometry.popupWidth),
             popup.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MessageView.popupRightSideOffset),
             popup.bottomAnchor.constraint(equalTo: bottomAnchor),
             
@@ -589,17 +591,19 @@ class MessageOuterView: OSView {
     
     @objc func handleTap() {
         unfolded.toggle()
+        unfoldedToggleCallback?(self)
+        if unfolded {
+            superview?.bringSubviewToFront(self)
+        }
     }
     
     func reconfigure() {
         popup.geometry = geometry
         inline.geometry = geometry
-        print(geometry)
         
         NSLayoutConstraint.deactivate(customConstaints)
         let constraints = [
             popup.topAnchor.constraint(equalTo: topAnchor, constant: geometry.popupOffset),
-            popup.widthAnchor.constraint(equalToConstant: geometry.popupWidth),
             popup.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MessageView.popupRightSideOffset),
             popup.bottomAnchor.constraint(equalTo: bottomAnchor),
             
@@ -631,6 +635,14 @@ class MessageOuterView: OSView {
     #if canImport(UIKit)
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let view = super.hitTest(point, with: event)
+        if view == self { return nil }
+        return view
+    }
+    #endif
+    
+    #if canImport(AppKit)
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let view = super.hitTest(point)
         if view == self { return nil }
         return view
     }
