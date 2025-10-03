@@ -780,6 +780,8 @@ final class CodeView: NSTextView {
     }
   }
 
+  override var textContainerOrigin: CGPoint { return CGPoint(x: textContainerInset.width, y: 8) }
+    
   @available(*, unavailable)
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
@@ -993,6 +995,10 @@ extension CodeView {
     {
       currentLineHighlightView?.frame = highlightRect
     }
+      
+      #if os(macOS)
+      currentLineHighlightView?.frame.origin.y += textContainerOrigin.y
+      #endif
   }
 
   func updateMessageLineHighlights() {
@@ -1154,6 +1160,7 @@ extension CodeView {
     if textContainerInset.width != gutterWidth {
       textContainerInset = CGSize(width: gutterWidth, height: 0)
     }
+      textContainerInset.height = 60.0
 #elseif os(iOS) || os(visionOS)
     if textContainerInset.left != gutterWidth {
       textContainerInset = UIEdgeInsets(top: 16, left: gutterWidth, bottom: 42, right: 0)

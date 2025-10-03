@@ -287,7 +287,6 @@ extension NSTextView: TextView {
 
   var textBackgroundColor: Color? { backgroundColor }
   var textFont:            Font? { font }
-  var textContainerOrigin: CGPoint { return CGPoint(x: textContainerInset.width, y: textContainerInset.height) }
 
   var text: String! {
     get { string }
