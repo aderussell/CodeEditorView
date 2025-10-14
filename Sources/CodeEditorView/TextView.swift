@@ -181,6 +181,12 @@ extension TextView {
   /// container's right hand side and the divider of the minimap (if the minimap is visible).
   ///
   func lineBackgroundRect(y: CGFloat, height: CGFloat) -> CGRect? {
+      
+#if os(macOS)
+  let extraOffset: CGFloat = textContainerOrigin.y
+#else
+  let extraOffset: CGFloat = 0.0
+#endif
 
     // We start at x = 0 as it looks nicer in case we overscoll when horizontal scrolling is enabled (i.e., when lines
     // are not wrapped).
@@ -188,7 +194,7 @@ extension TextView {
     let offset = (optCodeStorage?.theme.paragraphSpacing ?? 0.0) + (optCodeStorage?.theme.lineSpacing ?? 0.0)
       return CGRect(x: 0, y: (y - 2.0) + textContainerOrigin.y, width: bounds.size.width, height: (height + 4.0) - offset)
     #else
-    return CGRect(x: 0, y: y, width: bounds.size.width, height: height)
+    return CGRect(x: 0, y: y + extraOffset, width: bounds.size.width, height: height)
     #endif
   }
 }

@@ -995,10 +995,6 @@ extension CodeView {
     {
       currentLineHighlightView?.frame = highlightRect
     }
-      
-      #if os(macOS)
-      currentLineHighlightView?.frame.origin.y += textContainerOrigin.y
-      #endif
   }
 
   func updateMessageLineHighlights() {
