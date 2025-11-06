@@ -93,6 +93,12 @@ class CodeStorage: NSTextStorage {
 
     }
     endEditing()
+      
+//      if let del = delegate as? CodeStorageDelegate {
+//          let lines = del.lineMap.linesOf(range: range)
+//          // get messages
+//          
+//      }
   }
 
   override func setAttributes(_ attrs: [NSAttributedString.Key : Any]?, range: NSRange) {

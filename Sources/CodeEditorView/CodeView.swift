@@ -176,6 +176,40 @@ final class CodeView: UITextView {
     super.init(frame: frame, textContainer: codeContainer)
     codeContainer.textView = self
       
+      
+      if UIDevice.current.userInterfaceIdiom == .phone {
+          
+          let tb = UIToolbar()
+          
+          let tb0 = UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.reindent(_:)))
+          tb0.accessibilityLabel = "Re-Indent Selection"
+          
+          let tb1 = UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftLeft(_:)))
+          tb1.accessibilityLabel = "Shift Selection Left"
+          
+          let tb2 = UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain, target: self, action: #selector(CodeEditorActions.shiftRight(_:)))
+          tb2.accessibilityLabel = "Shift Selection Right"
+          
+          let tb3 = UIBarButtonItem(image: UIImage(systemName: "chevron.left.forwardslash.chevron.right"), style: .plain, target: self, action: #selector(CodeEditorActions.commentSelection(_:)))
+          tb3.accessibilityLabel = "Comment Selection"
+          
+          let tb4 = UIBarButtonItem(image: UIImage(systemName: "plus.rectangle.on.rectangle"), style: .plain, target: self, action: #selector(CodeEditorActions.duplicate(_:)))
+          tb4.accessibilityLabel = "Duplicate Selection"
+          
+          let tb5 = UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(Self.beginSearch(_:)))
+          tb5.accessibilityLabel = "Search"
+          
+          tb.items = [tb5, .flexibleSpace(), tb1, tb2, tb3, tb4]
+          
+          inputAccessoryView = tb
+          tb.sizeToFit()
+          
+          if #available(iOS 26.0, *) {
+              tb.bounds.size.height += 8
+          }
+          
+      }
+      
       NotificationCenter.default.addObserver(self, selector: #selector(resignFirstResponder), name: CodeEditor.shouldResignFirstResponderNotification, object: nil)
 
     textLayoutManager.renderingAttributesValidator = { (textLayoutManager, layoutFragment) in
@@ -867,6 +901,7 @@ final class CodeViewDelegate: NSObject, NSTextViewDelegate {
       // TODO: fix this so it only updates the message for the line which was edited
       if let tv = textView as? CodeView {
           tv.updateSubject.send()
+//          tv.updateFramesForMessageViews(withIDs: Array(tv.messageViews.keys))
           // updateFramesForMessageViews
           
       }
@@ -1424,6 +1459,13 @@ extension CodeView {
     // because the layout process for the text fills the `lineFragmentRect` property of the above `MessageInfo`.
     if let textRange = optTextContentStorage?.textRange(for: charRange) {
 
+  //    if let fff = optTextLayoutManager?.textLayoutFragmentExtent(for: textRange) {
+    //    print(fff)
+//        optTextLayoutManager?.textContainer?.exclusionPaths.append(UIBezierPath(rect: CGRect(x: 0, y: fff.y + fff.height, width: self.frame.width, height: 80)))
+//        gutterView?.optTextContainer?.exclusionPaths.append(UIBezierPath(rect: CGRect(x: 0, y: fff.y + fff.height, width: gutterView!.frame.width, height: 80)))
+ //     }
+      
+      
       optTextLayoutManager?.invalidateLayout(for: textRange)
 
     }
@@ -1471,6 +1513,12 @@ extension CodeView {
 
       }
     }
+  }
+    
+  fileprivate func updateFramesForMessageViews(withIDs ids: [LineInfo.MessageBundle.ID]? = nil) {
+      for id in ids ?? Array<LineInfo.MessageBundle.ID>(messageViews.keys) {
+          layoutMessageView(identifiedBy: id)
+      }
   }
 
   /// Remove the message views with the given ids.
@@ -1544,11 +1592,11 @@ final class CodeContainer: NSTextContainer {
             characterIndex == oneLine.range.location     // do the following only for the first line fragment of a line
       else { return calculatedRect }
 
-      if let messageBundleId = delegate.messages(at: line)?.id {
-          // print the thing
-          let dd = calculatedRect.width > 2 * MessageView.minimumInlineWidth
-          print("was in line \(line) - \(dd)")
-      }
+//      if let messageBundleId = delegate.messages(at: line)?.id {
+//          // print the thing
+//          let dd = calculatedRect.width > 2 * MessageView.minimumInlineWidth
+//          print("was in line \(line) - \(dd)")
+//      }
       
       // On lines that contain messages, we reduce the width of the available line fragement rect such that there is
       // always space for a minimal truncated message (provided the text container is wide enough to accomodate that).

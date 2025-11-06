@@ -104,6 +104,49 @@ public struct CodeEditingCommandsView: View {
   }
 }
 
+
+
+public struct CodeEditingKeyboardView: View {
+
+  public init() { }
+
+  public var body: some View {
+      if #available(iOS 26.0, macOS 26.0, *) {
+          HStack {
+              Spacer()
+              GlassEffectContainer {
+                  HStack(spacing: 16) {
+                      Button("Re-Indent", systemImage: "decrease.indent") {
+                          send(#selector(CodeEditorActions.reindent(_:)))
+                      }
+//                      Spacer().frame(width: 0)
+                      Button("Shift Left", systemImage: "decrease.indent") {
+                          send(#selector(CodeEditorActions.shiftLeft(_:)))
+                      }
+//                      Spacer().frame(width: 0)
+                      Button("Shift Right", systemImage: "increase.indent") {
+                          send(#selector(CodeEditorActions.shiftRight(_:)))
+                      }
+//                      Spacer().frame(width: 0)
+                      Button("Comment Selection", systemImage: "chevron.left.forwardslash.chevron.right") {
+                          send(#selector(CodeEditorActions.commentSelection(_:)))
+                      }
+                  }
+                  .fontWeight(.bold)
+                  .labelStyle(.iconOnly)
+                  .tint(.primary)
+                  .padding()
+                  //              .buttonStyle(.glass)
+              }
+              .glassEffect(.clear)
+              .padding(.trailing, 24)
+          }
+      } else {
+          // Fallback on earlier versions
+      }
+  }
+}
+
 /// Protocol with all code editor actions for maximum flexibility in invoking them via the responder chain.
 ///
 @objc public protocol CodeEditorActions {
